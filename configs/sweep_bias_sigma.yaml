@@ -1,0 +1,100 @@
+experiment:
+  name: Parametric sweep - RMSE(bias, sigma)
+  description: Maps of RMSE and detection delay over the bias of S2 and its noise
+    std.
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-02
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 40.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: bias
+    severity: 1.0
+    profile:
+      type: step
+      start: 20.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: kf
+- name: adaptive_kf
+- name: sensortrust_kf
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true
+analysis:
+  type: sweep
+  repetitions: 3
+  master_seed: 5
+  n_jobs: 0
+  spec: 0.05
+  metrics:
+  - rmse
+  - mean_detection_delay
+  parameters:
+  - path: sensors[1].degradations[0].severity
+    label: bias b [m]
+    values:
+    - 0.0
+    - 0.25
+    - 0.5
+    - 1.0
+    - 2.0
+    - 4.0
+  - path: sensors[1].noise.std
+    label: S2 noise std sigma [m]
+    values:
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.4
+    - 0.8

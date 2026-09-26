@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensortrust-fusion"
+version = "1.0.0"
+description = "SensorTrust Fusion: A Scientific Platform for Adaptive Multisensor Fusion Under Sensor Degradation and Uncertainty"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Francisco Javier Burgos Flórez", email = "fjburgosf@gmail.com" }]
+keywords = [
+    "multisensor fusion", "sensor degradation", "sensor trust", "innovation",
+    "Kalman filter", "Monte Carlo", "sensitivity analysis", "reproducibility",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "PyYAML>=6.0",
+    "SALib>=1.4.7",
+    "PySide6>=6.5",
+]
+
+[project.scripts]
+sensortrust = "sensortrust.cli:main"
+
+[project.gui-scripts]
+sensortrust-gui = "sensortrust.gui.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

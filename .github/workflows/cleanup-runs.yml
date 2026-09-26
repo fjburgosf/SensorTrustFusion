@@ -1,0 +1,33 @@
+name: Clean up old workflow runs
+
+# Manual maintenance: removes the workflow runs of commits that are no longer part
+# of the history of main, and the runs of branches other than main.
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Delete runs of superseded commits and other branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git rev-list origin/main > reachable.txt
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | "\(.id) \(.head_sha) \(.head_branch)"' |
+          while read -r id sha branch; do
+            if [ "$id" = "$GITHUB_RUN_ID" ]; then continue; fi
+            if ! grep -q "^$sha$" reachable.txt || [ "$branch" != "main" ]; then
+              echo "deleting run $id ($branch, $sha)"
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/runs/$id" || true
+            fi
+          done

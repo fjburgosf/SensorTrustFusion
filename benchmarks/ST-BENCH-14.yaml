@@ -1,0 +1,48 @@
+experiment:
+  name: ST-BENCH-14 - Thermal drift
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-14
+  description: Two-node thermal system; three object-temperature sensors with 0.1
+    degC resolution; sensor T2 drifts at 0.02 degC/s from 60 s.
+model:
+  type: thermal
+  params:
+    q: 0.01
+  P0:
+  - 0.1
+  - 0.1
+simulation:
+  duration: 180.0
+  fs: 10.0
+sensors:
+- name: T1
+  measures: object_temperature
+  noise: 0.1
+  resolution: 0.1
+- name: T2
+  measures: object_temperature
+  noise: 0.15
+  resolution: 0.1
+  degradations:
+  - type: drift
+    severity: 0.02
+    profile:
+      type: step
+      start: 60.0
+- name: T3
+  measures: object_temperature
+  noise: 0.2
+  resolution: 0.1
+methods:
+- name: simple_average
+- name: kf
+- name: adaptive_kf
+- name: sensortrust_kf
+  trust:
+    ewma_lambda: 0.9
+metrics:
+  target_state: object_temperature
+  warmup: 5.0
+  rmse_max: 0.1

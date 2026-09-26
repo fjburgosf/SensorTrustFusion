@@ -1,0 +1,63 @@
+experiment:
+  name: ST-BENCH-13 - Nonlinear pendulum
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-13
+  description: Nonlinear pendulum observed by an angle encoder and two horizontal-position
+    sensors h(x) = L sin(theta); sensor P2 receives a 0.15 m bias at 15 s. Justifies
+    EKF / UKF (nonlinear dynamics and measurement).
+model:
+  type: pendulum
+  params:
+    length: 1.0
+    damping: 0.1
+    q: 0.01
+  x0:
+  - 0.8
+  - 0.0
+  P0:
+  - 0.001
+  - 0.001
+simulation:
+  duration: 40.0
+  fs: 100.0
+sensors:
+- name: ANG
+  function: angle
+  noise:
+    type: gaussian
+    std: 0.02
+- name: P1
+  function: horizontal_position
+  noise:
+    type: gaussian
+    std: 0.03
+- name: P2
+  function: horizontal_position
+  noise:
+    type: gaussian
+    std: 0.03
+  degradations:
+  - type: bias
+    severity: 0.15
+    profile:
+      type: step
+      start: 15.0
+estimation:
+  x0:
+  - 0.7
+  - 0.0
+  P0:
+  - 0.05
+  - 0.05
+methods:
+- name: ekf
+- name: ukf
+- name: adaptive_ekf
+- name: sensortrust_ekf
+- name: sensortrust_ukf
+metrics:
+  target_state: angle
+  warmup: 1.0
+  rmse_max: 0.02

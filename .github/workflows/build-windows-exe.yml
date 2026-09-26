@@ -1,0 +1,110 @@
+name: Windows executable
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish the GitHub Release v1.0.0 with the Windows executable"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    name: Build SensorTrustFusion.exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+          pip install -e .
+      - name: Build executable
+        working-directory: packaging
+        run: pyinstaller SensorTrustFusion.spec --noconfirm --distpath ../dist --workpath ../build
+      - name: Smoke test (open the real window and exit)
+        shell: pwsh
+        run: |
+          $marker = Join-Path $env:RUNNER_TEMP "smoke.txt"
+          $env:SENSORTRUST_SMOKE_TEST = $marker
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $p = Start-Process -FilePath "dist\SensorTrustFusion.exe" -PassThru
+          $p.WaitForExit(180000) | Out-Null
+          if (-not (Test-Path $marker)) { throw "The executable did not start correctly." }
+          Get-Content $marker
+      - name: The window stays open (no self-closing)
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $p = Start-Process -FilePath "dist\SensorTrustFusion.exe" -PassThru
+          Start-Sleep -Seconds 90
+          if ($p.HasExited) { throw "The executable closed by itself (exit code $($p.ExitCode))." }
+          Write-Output "Still running after 90 s (PID $($p.Id)); closing it."
+          Stop-Process -Id $p.Id -Force
+      - name: Command-line smoke test of the executable
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\SensorTrustFusion.exe" -ArgumentList "benchmark","ST-BENCH-01","--no-figures","--results","exe_results" -PassThru -Wait
+          if (-not (Get-ChildItem exe_results -Directory)) { throw "The executable did not produce results." }
+          Get-ChildItem exe_results -Recurse -Include manifest.json | Select-Object -First 1 | Get-Content
+      - name: Parallel Monte Carlo with the executable (worker processes)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\SensorTrustFusion.exe" -ArgumentList "montecarlo","configs/montecarlo_abrupt_bias.yaml","--runs","8","--jobs","2","--results","exe_mc" -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Monte Carlo failed (exit $($p.ExitCode))." }
+          $f = Get-ChildItem exe_mc -Recurse -Include summary.csv,*.csv | Select-Object -First 1
+          if (-not $f) { throw "Monte Carlo produced no tables." }
+          Write-Output "Monte Carlo results: $($f.FullName)"
+      - name: Rename
+        shell: pwsh
+        run: Copy-Item dist\SensorTrustFusion.exe dist\SensorTrustFusion-1.0.0-win64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SensorTrustFusion-1.0.0-win64
+          path: dist/SensorTrustFusion-1.0.0-win64.exe
+          retention-days: 90
+
+  release:
+    name: Publish GitHub Release
+    needs: windows-exe
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source-code package
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix=SensorTrustFusion-1.0.0/ -o dist/SensorTrustFusion-1.0.0-source.zip HEAD
+      - uses: actions/download-artifact@v4
+        with:
+          name: SensorTrustFusion-1.0.0-win64
+          path: dist
+      - name: Replace any previous v1.0.0 release so that it points to this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete v1.0.0 --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          target_commitish: ${{ github.sha }}
+          name: SensorTrust Fusion v1.0.0
+          body: |
+            SensorTrust Fusion v1.0.0 - A Scientific Platform for Adaptive Multisensor Fusion Under Sensor Degradation and Uncertainty.
+
+            **Windows executable:** `SensorTrustFusion-1.0.0-win64.exe` (single file, no Python installation required; no hardware required).
+            Double-click to open the graphical interface. Command line: `SensorTrustFusion-1.0.0-win64.exe benchmark ST-BENCH-02`.
+
+            **Source code package:** `SensorTrustFusion-1.0.0-source.zip` (source code: `src/`, `configs/`, `examples/`, `benchmarks/`, `packaging/`, `README.md`, `pyproject.toml`, `requirements.txt`). The manuals are in the `Manuales/` folder of the repository.
+          files: |
+            dist/SensorTrustFusion-1.0.0-win64.exe
+            dist/SensorTrustFusion-1.0.0-source.zip
