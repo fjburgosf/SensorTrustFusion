@@ -1,0 +1,79 @@
+experiment:
+  name: ST-BENCH-06 - Outliers
+  description: Sensor S2 produces impulsive outliers (amplitude 3 m x U(0.5, 1.5),
+    probability 5 %) between 20 and 45 s.
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-06
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 60.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: outliers
+    severity: 3.0
+    probability: 0.05
+    profile:
+      type: step
+      start: 20.0
+      duration: 25.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: simple_average
+- name: inverse_variance
+- name: kf
+- name: adaptive_kf
+- name: kf_nis_gate
+- name: sensortrust_kf
+- name: kf_true_r
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true

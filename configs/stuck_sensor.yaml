@@ -1,0 +1,76 @@
+experiment:
+  name: ST-BENCH-07 - Sensor stuck
+  description: Sensor S2 freezes at its t = 25 s output until the end of the run.
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-07
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 60.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: stuck
+    severity: 1.0
+    profile:
+      type: step
+      start: 25.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: simple_average
+- name: inverse_variance
+- name: kf
+- name: adaptive_kf
+- name: kf_nis_gate
+- name: sensortrust_kf
+- name: kf_true_r
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true

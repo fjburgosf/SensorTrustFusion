@@ -1,0 +1,45 @@
+experiment:
+  name: ST-BENCH-15 - Oscillator stuck sensor
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-15
+  description: Forced mass-spring-damper; position sensors (100 Hz) and a velocity
+    sensor (50 Hz); position sensor X2 gets stuck at 20 s.
+model:
+  type: mass_spring_damper
+  params:
+    mass: 1.0
+    stiffness: 4.0
+    damping: 0.4
+    q: 0.01
+simulation:
+  duration: 60.0
+  fs: 100.0
+sensors:
+- name: X1
+  measures: position
+  noise: 0.02
+- name: X2
+  measures: position
+  noise: 0.02
+  degradations:
+  - type: stuck
+    severity: 1.0
+    profile:
+      type: step
+      start: 20.0
+- name: V1
+  measures: velocity
+  noise: 0.05
+  rate: 50.0
+methods:
+- name: kf
+- name: adaptive_kf
+- name: sensortrust_kf
+- name: ci_fusion
+- name: sensortrust_ci
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.02

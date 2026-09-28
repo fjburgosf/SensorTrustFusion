@@ -1,0 +1,15 @@
+# Source archives (GitHub "Download ZIP" and release source package) contain only
+# the source code: src/, configs/, examples/, benchmarks/, packaging/, README.md,
+# pyproject.toml and requirements.txt. Manuals, sample datasets and CI
+# configuration are not included.
+Manuales/            export-ignore
+datasets/            export-ignore
+.github/             export-ignore
+.gitignore           export-ignore
+.gitattributes       export-ignore
+
+*.py   text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+*.docx binary
+*.png  binary

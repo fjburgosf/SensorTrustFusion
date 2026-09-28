@@ -1,0 +1,97 @@
+experiment:
+  name: Example 11 - Monte Carlo abrupt bias
+  description: 100 Monte Carlo runs of an abrupt bias on S2 with random onset t_f
+    ~ U(10, 30) s, bias b ~ U(0.5, 3) m and S2 noise std ~ U(0.05, 0.5) m.
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-02
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 40.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: bias
+    severity: 1.0
+    profile:
+      type: step
+      start: 20.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: inverse_variance
+- name: kf
+- name: adaptive_kf
+- name: kf_nis_gate
+- name: sensortrust_kf
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true
+montecarlo:
+  runs: 100
+  master_seed: 2026
+  sampler: random
+  n_jobs: 0
+  reference_method: sensortrust_kf
+  parameters:
+  - path: sensors[1].degradations[0].profile.start
+    distribution: uniform
+    low: 10.0
+    high: 30.0
+    label: fault onset t_f [s]
+  - path: sensors[1].degradations[0].severity
+    distribution: uniform
+    low: 0.5
+    high: 3.0
+    label: bias b [m]
+  - path: sensors[1].noise.std
+    distribution: uniform
+    low: 0.05
+    high: 0.5
+    label: S2 noise std sigma [m]

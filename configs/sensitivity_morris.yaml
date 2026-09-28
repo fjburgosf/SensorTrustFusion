@@ -1,0 +1,111 @@
+experiment:
+  name: Sensitivity (morris) - SensorTrust KF RMSE, abrupt bias
+  description: Which parameters (fault severity, noise, onset, estimator settings)
+    explain the RMSE of the SensorTrust KF under an abrupt bias?
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-02
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 40.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: bias
+    severity: 1.0
+    profile:
+      type: step
+      start: 20.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: sensortrust_kf
+  trust:
+    ewma_lambda: 0.98
+    mean_deadzone: 3.0
+    mean_scale: 0.5
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true
+analysis:
+  type: sensitivity
+  method: morris
+  samples: 20
+  seed_mode: common
+  master_seed: 42
+  n_jobs: 0
+  output:
+    method: 0
+    metric: rmse
+    transform: log10
+  parameters:
+  - path: sensors[1].degradations[0].severity
+    low: 0.1
+    high: 3.0
+    label: bias b [m]
+  - path: sensors[1].noise.std
+    low: 0.05
+    high: 0.4
+    label: S2 noise std [m]
+  - path: sensors[1].degradations[0].profile.start
+    low: 5.0
+    high: 25.0
+    label: fault onset [s]
+  - path: methods[0].trust.ewma_lambda
+    low: 0.9
+    high: 0.995
+    label: EWMA lambda
+  - path: methods[0].trust.mean_deadzone
+    low: 1.0
+    high: 5.0
+    label: dead zone gamma1
+  - path: methods[0].trust.mean_scale
+    low: 0.1
+    high: 2.0
+    label: trust scale beta1

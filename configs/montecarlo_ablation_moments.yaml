@@ -1,0 +1,98 @@
+experiment:
+  name: Monte Carlo ablation - first vs second moment
+  description: '100 runs of the bias + noise failure of S2 with random bias b ~ U(0,
+    1.5) m and variance factor F ~ U(1, 40): contribution of each moment of the innovation.'
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-11
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 40.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations:
+  - type: combined
+    name: bias+noise
+    profile:
+      type: ramp
+      start: 20.0
+      rise_time: 5.0
+    components:
+    - type: bias
+      severity: 0.8
+    - type: variance_increase
+      severity: 20.0
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: kf
+- name: adaptive_kf
+- name: sensortrust_kf_mean_only
+- name: sensortrust_kf_m2_only
+- name: sensortrust_kf
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true
+montecarlo:
+  runs: 100
+  master_seed: 11
+  sampler: lhs
+  n_jobs: 0
+  reference_method: sensortrust_kf
+  parameters:
+  - path: sensors[1].degradations[0].components[0].severity
+    distribution: uniform
+    low: 0.0
+    high: 1.5
+    label: bias b [m]
+  - path: sensors[1].degradations[0].components[1].severity
+    distribution: uniform
+    low: 1.0
+    high: 40.0
+    label: variance factor F [-]

@@ -1,0 +1,83 @@
+experiment:
+  name: ST-BENCH-01 - Nominal
+  description: All three sensors operate nominally (reference case, false-alarm baseline).
+  seed: 42
+  tags:
+  - benchmark
+  - ST-BENCH-01
+model:
+  type: constant_velocity
+  params:
+    q: 0.05
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 0.01
+  - 0.01
+  sample_initial_state: true
+simulation:
+  duration: 60.0
+  fs: 100.0
+sensors:
+- name: S1
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.1
+  nominal_reliability: 1.0
+  degradations: []
+- name: S2
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.15
+  nominal_reliability: 1.0
+  degradations: []
+- name: S3
+  measures: position
+  rate: 100.0
+  noise:
+    type: gaussian
+    std: 0.2
+  nominal_reliability: 1.0
+  degradations: []
+estimation:
+  x0:
+  - 0.0
+  - 1.0
+  P0:
+  - 1.0
+  - 1.0
+methods:
+- name: simple_average
+- name: inverse_variance
+- name: kf
+- name: adaptive_kf
+- name: kf_nis_gate
+- name: sensortrust_kf
+- name: kf_true_r
+- name: single_sensor_kf
+  label: KF (S1 only)
+  use_sensors:
+  - S1
+- name: single_sensor_kf
+  label: KF (S2 only)
+  use_sensors:
+  - S2
+- name: single_sensor_kf
+  label: KF (S3 only)
+  use_sensors:
+  - S3
+metrics:
+  target_state: position
+  warmup: 1.0
+  rmse_max: 0.05
+  trust_threshold: 0.5
+output:
+  figures:
+  - png
+  figure_dpi: 150
+  save_dataset: true
